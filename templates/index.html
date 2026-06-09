@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pepper Disease Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body class="dashboard-page">
+<div class="page-shell">
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <!-- Compact Topbar -->
+    <header class="topbar panel-3d">
+        <div class="topbar-brand">
+            <span class="topbar-eyebrow">🌿 Pepper AI</span>
+            <h1 class="topbar-title">Disease Dashboard</h1>
+        </div>
+        <div class="topbar-actions">
+            <span class="topbar-chip">
+                <span class="chip-dot"></span>
+                {{ username }}
+            </span>
+            <a class="logout-link" href="{{ url_for('logout') }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Logout
+            </a>
+        </div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <section class="flash-stack">
+        {% for category, message in messages %}
+        <div class="flash-message {{ category }}">{{ message }}</div>
+        {% endfor %}
+    </section>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Main Workspace -->
+    <main class="workspace-grid">
+
+        <!-- Left: Action Panel -->
+        <section class="panel-3d action-panel">
+            <div class="panel-header">
+                <span class="status-dot"></span>
+                Analyze a leaf image
+            </div>
+
+            <form method="POST" enctype="multipart/form-data" class="prediction-form" id="prediction-form">
+
+                <!-- Tab Switcher -->
+                <div class="input-tabs">
+                    <button type="button" class="tab-btn active" id="tab-upload" data-tab="upload">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Upload
+                    </button>
+                    <button type="button" class="tab-btn" id="tab-live" data-tab="live">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M23 7l-4 4-4-4"/><path d="M1 7l4 4 4-4"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg>
+                        Live Camera
+                    </button>
+                </div>
+
+                <!-- Upload Tab -->
+                <div class="tab-panel" id="panel-upload">
+                    <label class="upload-dropzone" id="upload-dropzone">
+                        <input type="file" name="file" id="file-input" accept="image/*">
+                        <div class="dropzone-inner">
+                            <div class="dropzone-icon">⤴</div>
+                            <div class="dropzone-title">Drop or browse from device</div>
+                            <div class="dropzone-subtitle">PNG, JPG, JPEG, WEBP supported</div>
+                        </div>
+                        <img id="upload-preview" class="preview-image preview-hidden" alt="Upload preview">
+                    </label>
+                </div>
+
+                <!-- Live Camera Tab -->
+                <div class="tab-panel preview-hidden" id="panel-live">
+                    <div class="camera-stage" id="camera-stage">
+                        <video id="camera-video" autoplay playsinline></video>
+                        <img id="camera-preview" class="preview-image preview-hidden" alt="Camera snapshot preview">
+                        <canvas id="camera-canvas" class="preview-hidden"></canvas>
+                        <div class="camera-overlay" id="camera-idle-overlay">
+                            <div class="camera-idle-icon">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                            </div>
+                            <span>Camera idle</span>
+                        </div>
+                    </div>
+                    <input type="hidden" name="captured_image" id="captured-image">
+                    <div class="camera-actions">
+                        <button type="button" class="secondary-button" id="start-camera">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/></svg>
+                            Start
+                        </button>
+                        <button type="button" class="secondary-button" id="capture-photo">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+                            Capture
+                        </button>
+                        <div class="camera-status" id="camera-status">Idle</div>
+                    </div>
+                </div>
+
+                <button type="submit" class="primary-button action-button">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    Run Prediction
+                </button>
+            </form>
+        </section>
+
+        <!-- Right: Result Panel -->
+        <aside class="panel-3d result-panel">
+            <div class="panel-header">
+                <span class="status-dot"></span>
+                Result &amp; guidance
+            </div>
+
+            {% if result %}
+            <div class="prediction-card {% if result.prediction == 'Healthy' %}healthy{% else %}disease{% endif %}">
+
+                <div class="result-heading">Prediction</div>
+                <div class="prediction-value">{{ result.prediction }}</div>
+
+                <!-- Confidence Meter -->
+                <div class="confidence-wrapper">
+                    <div class="confidence-label-row">
+                        <span class="confidence-text">Confidence</span>
+                        <span class="confidence-pct" id="conf-pct">{{ (result.confidence * 100) | round(1) }}%</span>
+                    </div>
+                    <div class="confidence-bar-track">
+                        <div
+                            class="confidence-bar-fill {% if result.prediction == 'Healthy' %}fill-healthy{% else %}fill-disease{% endif %}"
+                            style="--conf-width: {{ (result.confidence * 100) | round(1) }}%"
+                        ></div>
+                    </div>
+                </div>
+
+                <!-- Visual Signal Tags -->
+                {% if result.signals %}
+                <div class="signals-row">
+                    {% for sig in result.signals %}
+                    <span class="signal-tag">{{ sig }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <img src="{{ result.image_url }}" alt="Analyzed leaf preview" class="preview-image result-image">
+
+                <ul class="detail-list">
+                    <li><span>Caused by</span><strong>{{ result.caused_by }}</strong></li>
+                    <li><span>Treatment</span><strong>{{ result.treatment }}</strong></li>
+                    <li><span>Cure / management</span><strong>{{ result.cure }}</strong></li>
+                </ul>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">🔬</div>
+                <h3>No scan yet</h3>
+                <p>Upload a photo or capture one from the live camera to see results.</p>
+            </div>
+            {% endif %}
+
+            <div class="reference-card">
+                <div class="result-heading">Disease Reference</div>
+                <div class="reference-grid">
+                    {% for item in disease_library %}
+                    <article class="reference-item">
+                        <h4>{{ item.disease_name }}</h4>
+                        <ul class="detail-list compact-list">
+                            <li><span>Caused by</span><strong>{{ item.caused_by }}</strong></li>
+                            <li><span>Treatment</span><strong>{{ item.treatment }}</strong></li>
+                            <li><span>Cure</span><strong>{{ item.cure }}</strong></li>
+                        </ul>
+                    </article>
+                    {% endfor %}
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- History Section -->
+    <section class="history-section panel-3d">
+        <div class="section-header">
+            <div>
+                <div class="result-heading">Saved scans</div>
+                <h3>Prediction History</h3>
+            </div>
+            <p>Each scan stored with image, prediction, and guidance.</p>
+        </div>
+
+        <div class="history-grid">
+            {% for item in history %}
+            <article class="history-card">
+                <img src="{{ url_for('static', filename=item.image_path) }}" alt="Saved scan preview" class="history-image">
+                <div class="history-meta">
+                    <span class="history-label">{{ item.prediction }}</span>
+                    <span class="history-time">{{ item.created_at }}</span>
+                </div>
+                <div class="history-title">{{ item.disease_name }}</div>
+
+                <!-- Mini confidence bar in history cards -->
+                {% if item.confidence %}
+                <div class="history-conf-bar">
+                    <div class="history-conf-fill {% if item.prediction == 'Healthy' %}fill-healthy{% else %}fill-disease{% endif %}"
+                         style="width: {{ (item.confidence * 100) | round(0) | int }}%"></div>
+                </div>
+                <div class="history-conf-pct">{{ (item.confidence * 100) | round(0) | int }}% confidence</div>
+                {% endif %}
+
+                <ul class="detail-list compact-list">
+                    <li><span>Caused by</span><strong>{{ item.caused_by }}</strong></li>
+                    <li><span>Treatment</span><strong>{{ item.treatment }}</strong></li>
+                </ul>
+            </article>
+            {% else %}
+            <div class="empty-history">No saved scans yet.</div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+<script>
+    // Animate confidence bar on load
+    document.addEventListener("DOMContentLoaded", () => {
+        const fill = document.querySelector(".confidence-bar-fill");
+        if (fill) {
+            fill.style.width = "0%";
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    fill.style.width = fill.style.getPropertyValue("--conf-width") ||
+                        fill.style.cssText.match(/--conf-width:\s*([\d.]+%)/)?.[1] || "0%";
+                }, 100);
+            });
+        }
+    });
+</script>
+</body>
+</html>

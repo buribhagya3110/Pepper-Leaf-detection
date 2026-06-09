@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body class="auth-page">
+<main class="auth-shell">
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <section class="auth-card panel-3d">
+        <div class="auth-head">
+            <h1>Pepper Disease Detection</h1>
+        </div>
+
+        {% if error %}
+        <div class="flash-message error">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" class="auth-form">
+            <label>
+                <span>Username</span>
+                <input type="text" name="username" value="admin" required autocomplete="username">
+            </label>
+            <label>
+                <span>Password</span>
+                <input type="password" name="password" value="password" required autocomplete="current-password">
+            </label>
+            <button type="submit" class="primary-button">Login</button>
+        </form>
+
+        <div class="credential-card">
+            <span class="feature-label">Default credentials</span>
+            <strong>admin / password</strong>
+        </div>
+
+    </section>
+</main>
+</body>
+</html>
