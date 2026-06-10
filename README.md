@@ -1,4 +1,6 @@
 Early Pepper Plant Disease Detection using Digital Image Processing and Computer vision.
+
+
 Technologies used: 
                  Python, OpenCV, Digital Image Peocessing, Computer vision, Machine Learning, Deep Learning, Flask, HTML, CSS, JavaScript, TensorFlow/Keras
 
